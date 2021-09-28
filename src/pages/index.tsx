@@ -43,13 +43,8 @@ export default function Home({ postsPagination }: HomeProps) {
         setNextPage(json.next_page);
         nextPost = json.results.map(post => ({
           uid: post.uid,
-          first_publication_date: format(
-            new Date(post.first_publication_date),
-            'dd MMM yyyy',
-            {
-              locale: ptBR,
-            }
-          ),
+          first_publication_date: post.first_publication_date,
+
           data: post.data,
         }));
 
@@ -72,7 +67,16 @@ export default function Home({ postsPagination }: HomeProps) {
                         src="images/calendarIcon.svg"
                         alt="Ícone de um calendário"
                       />
-                      <p> {post.first_publication_date}</p>
+                      <p>
+                        {' '}
+                        {format(
+                          new Date(post.first_publication_date),
+                          'dd MMM yyyy',
+                          {
+                            locale: ptBR,
+                          }
+                        )}
+                      </p>
                     </time>
                     <div className={styles.author}>
                       <img
@@ -117,13 +121,8 @@ export const getStaticProps: GetStaticProps = async () => {
   const posts = postsResponse.results.map(post => {
     return {
       uid: post.uid,
-      first_publication_date: format(
-        new Date(post.first_publication_date),
-        'dd MMM yyyy',
-        {
-          locale: ptBR,
-        }
-      ),
+      first_publication_date: post.first_publication_date,
+
       data: {
         title: post.data.title,
         subtitle: post.data.subtitle,

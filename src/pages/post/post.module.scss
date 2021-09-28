@@ -44,15 +44,29 @@
     display: flex;
     flex-direction: column;
     margin-top: 4rem;
-    height: 100vh;
-    h2 {
-      font-size: 3rem;
-      margin-bottom: 4rem;
-    }
-    p {
-      line-height: 1.4rem;
-      text-align: justify;
-      margin-bottom: 2rem;
+    min-height: 100vh;
+    max-height: 100%;
+    div {
+      h2 {
+        font-size: 3rem;
+        margin-bottom: 2rem;
+      }
+      ul {
+        margin-bottom: 2rem;
+        margin: 0 auto;
+        width: 80%;
+      }
+      p {
+        line-height: 1.4rem;
+        text-align: justify;
+        margin-bottom: 2rem;
+        img {
+          width: 50%;
+          background: none;
+          display: block;
+          margin: 0 auto;
+        }
+      }
     }
   }
 }

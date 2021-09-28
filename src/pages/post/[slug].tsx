@@ -1,10 +1,14 @@
+import { format } from 'date-fns';
+import ptBR from 'date-fns/locale/pt-BR';
 import { GetStaticPaths, GetStaticProps } from 'next';
+import { RichText } from 'prismic-dom';
 
 import { getPrismicClient } from '../../services/prismic';
 
 import commonStyles from '../../styles/common.module.scss';
 import styles from './post.module.scss';
-
+import Prismic from '@prismicio/client';
+import router, { useRouter } from 'next/router';
 interface Post {
   first_publication_date: string | null;
   data: {
@@ -26,85 +30,122 @@ interface PostProps {
   post: Post;
 }
 
-export default function Post() {
+export default function Post({ post }: PostProps) {
+  const route = useRouter();
+  if (route.isFallback) {
+    return <p>Carregando...</p>;
+  }
+
+  let headingWords = 0;
+  let bodyWords = 0;
+  post.data.content.forEach(item => {
+    headingWords += item.heading.split(' ').length;
+    item.body.forEach(item => {
+      bodyWords += item.text.split(' ').length;
+    });
+  });
+  let timeToRead =
+    Math.ceil((headingWords + bodyWords) / 200).toString() + ` min`;
   return (
     <>
       <div className={styles.banner}>
-        <img src="/images/banner_test.png" alt="Banner" />
+        <img src={post.data.banner.url} alt="Banner" />
       </div>
 
       <main className={styles.mainContainer}>
         <header className={styles.mainHeader}>
-          <h1>Criando um app CRA do zero</h1>
+          <h1>{post.data.title}</h1>
           <div className={styles.infoArea}>
             <time className={styles.date}>
               <img
                 src="/images/calendarIcon.svg"
                 alt="Ícone de um calendário."
               />
-              <p> 15 Mar 2021</p>
+              <p>
+                {' '}
+                {format(new Date(post.first_publication_date), 'dd MMM yyyy', {
+                  locale: ptBR,
+                })}
+              </p>
             </time>
             <div className={styles.author}>
               <img src="/images/userIcon.svg" alt="Ícone de um usuário" />
-              <p> David Carmo</p>
+              <p> {post.data.author}</p>
             </div>
             <div className={styles.timeToRead}>
               <img src="/images/clockIcon.svg" alt="Ícone de um relógio" />
-              <p> 4 min</p>
+              <p>{timeToRead}</p>
             </div>
           </div>
         </header>
 
         <div className={styles.mainContent}>
-          <h2>Alabimba</h2>
-          <p>
-            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam
-            dolor sapien, vulputate eu diam at, condimentum hendrerit tellus.
-            Nam facilisis sodales felis, pharetra pharetra lectus auctor sed. Ut
-            venenatis mauris vel libero pretium, et pretium ligula faucibus.
-            Morbi nibh felis, elementum a posuere et, vulputate et erat. Nam
-            venenatis.
-          </p>
-          <p>
-            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam
-            dolor sapien, vulputate eu diam at, condimentum hendrerit tellus.
-            Nam facilisis sodales felis, pharetra pharetra lectus auctor sed. Ut
-            venenatis mauris vel libero pretium, et pretium ligula faucibus.
-            Morbi nibh felis, elementum a posuere et, vulputate et erat. Nam
-            venenatis.
-          </p>
-          <p>
-            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam
-            dolor sapien, vulputate eu diam at, condimentum hendrerit tellus.
-            Nam facilisis sodales felis, pharetra pharetra lectus auctor sed. Ut
-            venenatis mauris vel libero pretium, et pretium ligula faucibus.
-            Morbi nibh felis, elementum a posuere et, vulputate et erat. Nam
-            venenatis.
-          </p>
-          <p>
-            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam
-            dolor sapien, vulputate eu diam at, condimentum hendrerit tellus.
-            Nam facilisis sodales felis, pharetra pharetra lectus auctor sed. Ut
-            venenatis mauris vel libero pretium, et pretium ligula faucibus.
-            Morbi nibh felis, elementum a posuere et, vulputate et erat. Nam
-            venenatis.
-          </p>
+          {post.data.content.map((contentItem, index) => {
+            return (
+              <div
+                key={index}
+                dangerouslySetInnerHTML={{
+                  __html: `<h2>${contentItem.heading}</h2> ${String(
+                    RichText.asHtml(contentItem.body)
+                  )}`,
+                }}
+              />
+            );
+          })}
         </div>
       </main>
     </>
   );
 }
 
-// export const getStaticPaths = async () => {
-//   const prismic = getPrismicClient();
-//   const posts = await prismic.query(TODO);
+export const getStaticPaths: GetStaticPaths = async () => {
+  const prismic = getPrismicClient();
+  const posts = await prismic.query(
+    [Prismic.predicates.at('document.type', 'posts')],
+    {
+      fetch: [
+        'posts.uid',
+        'posts.first_publication_date',
+        'posts.title',
+        'posts.subtitle',
+        'posts.author',
+      ],
+      pageSize: 1,
+    }
+  );
+  const paths = posts.results.map(path => {
+    return {
+      params: { slug: path.uid },
+    };
+  });
+  return {
+    paths: paths,
+    fallback: true,
+  };
+};
 
-//   // TODO
-// };
+export const getStaticProps: GetStaticProps = async context => {
+  const { slug } = context.params;
+  const prismic = getPrismicClient();
+  const response = await prismic.getByUID('posts', String(slug), {});
 
-// export const getStaticProps = async context => {
-//   const prismic = getPrismicClient();
-//   const response = await prismic.getByUID(TODO);
-
-//   // TODO
-// };
+  const post = {
+    uid: response.uid,
+    first_publication_date: response.first_publication_date,
+    data: {
+      title: response.data.title,
+      subtitle: response.data.subtitle,
+      author: response.data.author,
+      banner: {
+        url: response.data.banner.url,
+      },
+      content: response.data.content.map(contentItem => ({
+        body: contentItem.body,
+        heading: contentItem.heading,
+      })),
+    },
+  };
+  return {
+    props: { post },
+  };
+};
