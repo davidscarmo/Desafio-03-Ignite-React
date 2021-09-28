@@ -20,7 +20,7 @@
         width: 100%;
 
         & + .postItem {
-          margin-top: 1rem;
+          margin-top: 3rem;
         }
         .dateAndAuthorArea {
           display: flex;
@@ -39,5 +39,14 @@
         }
       }
     }
+  }
+  // button load more posts
+  .loadMorePosts {
+    background: none;
+    border: none;
+    color: rgba(255, 87, 178, 1);
+    font-size: 1.125rem;
+    font-weight: 600;
+    margin-top: 4rem;
   }
 }

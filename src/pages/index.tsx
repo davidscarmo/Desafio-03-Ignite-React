@@ -7,6 +7,7 @@ import styles from './home.module.scss';
 import { format } from 'date-fns';
 import ptBR from 'date-fns/locale/pt-BR';
 import Link from 'next/link';
+import { useState } from 'react';
 
 interface Post {
   uid?: string;
@@ -28,12 +29,38 @@ interface HomeProps {
 }
 
 export default function Home({ postsPagination }: HomeProps) {
-  console.log(postsPagination);
+  const [postsData, setPostsData] = useState(postsPagination.results);
+  const [nextPage, setNextPage] = useState(postsPagination.next_page);
+
+  const handleNextPost = async () => {
+    console.log(nextPage);
+    let nextPost: Post[];
+    fetch(nextPage)
+      .then(response => {
+        return response.json();
+      })
+      .then(json => {
+        setNextPage(json.next_page);
+        nextPost = json.results.map(post => ({
+          uid: post.uid,
+          first_publication_date: format(
+            new Date(post.first_publication_date),
+            'dd MMM yyyy',
+            {
+              locale: ptBR,
+            }
+          ),
+          data: post.data,
+        }));
+
+        setPostsData([...postsData, nextPost[0]]);
+      });
+  };
   return (
     <main className={styles.mainContainer}>
       <div className={styles.mainContent}>
         <div className={styles.postContainer}>
-          {postsPagination.results.map(post => {
+          {postsData.map(post => {
             return (
               <Link href={`/post/${post.uid}`}>
                 <div className={styles.postItem}>
@@ -60,6 +87,13 @@ export default function Home({ postsPagination }: HomeProps) {
             );
           })}
         </div>
+
+        {nextPage && (
+          <button onClick={handleNextPost} className={styles.loadMorePosts}>
+            {' '}
+            Carregar mais posts
+          </button>
+        )}
       </div>
     </main>
   );
